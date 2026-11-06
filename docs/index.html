@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One thing changed: an event-ops agent in the team chat, built on Switch</title>
+<meta name="description" content="How I connected a custom AI agent to Mattermost with Switch, and what I learned keeping people in charge of the decisions">
+<meta property="og:title" content="One thing changed: an event-ops agent in the team chat, built on Switch">
+<meta property="og:description" content="How I connected a custom AI agent to Mattermost with Switch, and what I learned keeping people in charge of the decisions">
+<meta property="og:image" content="https://raw.githubusercontent.com/tpavankalyan/stageleaf/main/docs/figures/hero.png">
+<style>
+@font-face { font-family: Excalifont; src: url(fonts/Excalifont.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "DM Sans"; src: url(fonts/DMSans.woff2) format("woff2"); font-weight: 100 1000; font-display: swap; }
+@font-face { font-family: Cascadia; src: url(fonts/CascadiaCode.woff2) format("woff2"); font-display: swap; }
+:root { --ink: #232a26; --muted: #5f6b64; --paper: #fbf8f1; --switch: #ff895e; --leaf: #2f6b57; }
+* { box-sizing: border-box; }
+html { background: var(--paper) url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.35%20%200%200%200%200%200.3%20%200%200%200%200%200.2%20%200%200%200%20.05%200%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n)%22%2F%3E%3C%2Fsvg%3E"); }
+body { margin: 0; color: var(--ink); font: 19px/1.72 "DM Sans", system-ui, sans-serif; }
+main { max-width: 780px; margin: 0 auto; padding: 72px 24px 120px; }
+header { text-align: left; margin-bottom: 30px; }
+.kicker { font: 22px Excalifont; color: var(--leaf); transform: rotate(-1.5deg); display: inline-block; }
+h1 { font: 400 clamp(40px, 6vw, 64px)/1.08 Excalifont; letter-spacing: -0.01em; margin: 10px 0 14px; }
+.sub { font-size: 21px; color: var(--muted); margin: 0 0 22px; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; }
+.links a { font: 20px Excalifont; color: var(--ink); text-decoration: none; padding: 6px 16px; border: 2px solid var(--ink); border-radius: 12px 14px 11px 15px; background: #fff; box-shadow: 3px 3px 0 var(--ink); transition: transform .12s; }
+.links a:hover { transform: translate(-1px, -1px); }
+.links a.hot { background: #ffe1d3; }
+h2 { font: 400 38px/1.15 Excalifont; margin: 64px 0 18px; }
+h2 span { background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22240%22%20height%3D%2214%22%20viewBox%3D%220%200%20240%2014%22%3E%3Cpath%20d%3D%22M2%209%20C%2030%203%2C%2052%2013%2C%2080%207%20S%20132%202%2C%20160%208%20S%20210%2012%2C%20238%205%22%20fill%3D%22none%22%20stroke%3D%22%23ff895e%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E") no-repeat left bottom / 100% 12px; padding-bottom: 12px; }
+h3 { font: 400 28px Excalifont; margin: 36px 0 10px; }
+p, li { margin: 0 0 18px; }
+a { color: #c2410c; text-underline-offset: 3px; }
+strong { font-weight: 700; }
+figure { margin: 34px -120px; background: #fff; border: 2px solid var(--ink); border-radius: 16px 18px 14px 20px; padding: 18px 18px 10px; transform: rotate(var(--tilt)); box-shadow: 6px 7px 0 rgba(35, 42, 38, 0.12); }
+figure img { width: 100%; display: block; border-radius: 8px; }
+figcaption { font: 21px Excalifont; color: var(--muted); text-align: center; padding: 10px 0 2px; }
+pre { background: #2a2f2c; color: #f3efe4; border-radius: 14px; padding: 18px 20px; overflow-x: auto; font: 14.5px/1.6 Cascadia, ui-monospace, monospace; position: relative; box-shadow: 4px 5px 0 rgba(35, 42, 38, 0.18); }
+pre::before { content: ""; position: absolute; top: -10px; left: 40px; width: 90px; height: 22px; background: rgba(255, 213, 79, 0.75); transform: rotate(-3deg); border-radius: 2px; }
+code { font: 0.86em Cascadia, ui-monospace, monospace; background: #f0ece1; padding: 2px 6px; border-radius: 6px; }
+pre code { background: none; padding: 0; font: inherit; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 10px 0 26px; font-size: 17px; background: #fff; border: 2px solid var(--ink); border-radius: 14px 16px 12px 18px; overflow: hidden; }
+th { font: 22px Excalifont; text-align: left; background: #f4efe2; }
+th, td { padding: 12px 14px; border-bottom: 1.5px dashed #c9c2b2; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.sticky { display: block; background: #fff1a8; border-radius: 4px 4px 18px 4px; padding: 18px 22px 20px; margin: 28px 10px 30px; transform: rotate(-1deg); box-shadow: 4px 8px 16px rgba(80, 60, 0, 0.18); font-size: 18px; }
+.sticky b { font: 28px Excalifont; display: block; color: #a14a12; margin-bottom: 4px; }
+.sticky pre { transform: rotate(1deg); margin: 14px 0 0; }
+ol li::marker { font: 22px Excalifont; color: var(--leaf); }
+blockquote { margin: 0 0 18px; padding: 4px 18px; border-left: 4px solid var(--switch); color: #3b453f; font-style: italic; }
+footer { margin-top: 70px; padding-top: 24px; border-top: 2px dashed #c9c2b2; font-size: 16px; color: var(--muted); }
+@media (max-width: 1100px) { figure { margin: 30px -10px; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="kicker">Flip the Switch 2026 · Stageleaf × Switch</div>
+  <h1>One thing changed: an event-ops agent in the team chat, built on Switch</h1>
+  <p class="sub">How I connected a custom AI agent to Mattermost with Switch, and what I learned keeping people in charge of the decisions</p>
+  <div class="links">
+    <a class="hot" href="#">▶ Demo video</a>
+    <a href="https://github.com/tpavankalyan/stageleaf">Code on GitHub</a>
+    
+    <a href="https://docs.switchagents.ai/">Switch docs</a>
+  </div>
+</header>
+<figure style="--tilt:-0.6deg"><img src="figures/hero.png" alt="One thing changed" loading="lazy"><figcaption>One thing changed</figcaption></figure>
+<p>It&#39;s event day. At 9 a.m. the keynote speaker messages the team chat: her flight is running late, she&#39;ll reach the venue around 11:45, and her slot is 11:15.</p>
+<p>One late flight touches the whole day. The AV crew has a mic plan for the keynote. The panel is set for 14:30. Catering is booked for noon, and the printed run of show at the doors is now wrong. In most event teams, this is where the side messages start (&quot;who&#39;s telling AV?&quot;, &quot;which version is current?&quot;), and by noon someone is still working from the old plan.</p>
+<p>For <a href="https://www.wemakedevs.org/hackathons/switch">Flip the Switch</a> I built <strong>Stageleaf</strong>: an event-operations workspace with an AI agent that sits in the team&#39;s chat room through <strong><a href="https://github.com/sandbox-quantum/switch">Switch</a></strong>. This post explains how it works, how I set Switch up from nothing, and what I&#39;d tell anyone connecting their first agent.</p>
+<p><strong>Links:</strong> <a href="https://github.com/tpavankalyan/stageleaf">code</a> · <a href="#">demo video</a> · Switch <a href="https://docs.switchagents.ai/">docs</a></p>
+<h2><span>What we built</span></h2>
+<p>Stageleaf is a normal planner&#39;s tool first: events, a run of show, owners and vendors, tasks, and versioned briefs, each person seeing only their own part. The interesting part is what happens when something changes.</p>
+<figure style="--tilt:0.5deg"><img src="figures/thread.png" alt="The whole change, in one thread" loading="lazy"><figcaption>The whole change, in one thread</figcaption></figure>
+<p>Here&#39;s the real exchange from the recorded demo, trimmed:</p>
+<ol>
+<li><strong>Maya</strong> (the speaker) posts in <code>#fieldwork-forum-ops</code>: <em>&quot;@stageleaf my flight into SFO is running late. I won&#39;t get to the venue until about 11:45, so I can&#39;t do the 11:15 keynote slot.&quot;</em></li>
+<li><strong>The agent</strong> records her new arrival in Stageleaf. Stageleaf immediately flags the keynote as outside her availability.</li>
+<li><strong>The agent tests options</strong> against Stageleaf&#39;s deterministic checks.<ul>
+<li>Moving the keynote to 13:00 fails: breakdown would run to 17:30, and Sam&#39;s AV crew leaves at 17:00.</li>
+<li>Swapping the keynote with the builders&#39; panel passes, and nothing else moves.</li>
+</ul>
+</li>
+<li><strong>It proposes the swap in the thread</strong> and @-mentions the three people Stageleaf names as owners: Maya, Sam (AV) and Jamie (program). It asks Jamie the one thing it can&#39;t know: can the four panelists do 11:15?</li>
+<li><strong>People answer in the thread.</strong> Sam approves. Robin cheerfully approves too, and the agent explains why that doesn&#39;t count: nothing Robin owns is changing. Jamie approves and confirms the panelists. Maya approves.</li>
+<li><strong>Alex, the lead planner, types &quot;Looks good. Publish it.&quot;</strong> Only his chat handle can publish. Stageleaf applies the change and publishes run of show v2. The agent posts a summary to the room, writes the new run of show into a Switch <strong>room document</strong>, and gives each person their own changes.</li>
+<li><strong>Sam, Jamie and Maya reply &quot;ack&quot;.</strong> Stageleaf records each acknowledgment against v2. Robin and Avery weren&#39;t affected, so nobody chases them.</li>
+</ol>
+<p>In Stageleaf, the planner sees the same story with provenance: <em>&quot;Approved @sam in #fieldwork-forum-ops&quot;</em>, <em>&quot;Acknowledged @jamie in #fieldwork-forum-ops&quot;</em>.</p>
+<h2><span>Why Switch, and not another chat bot</span></h2>
+<p>Switch&#39;s pitch is that each channel becomes a <em>room</em> for people and agents, with shared context, and that any agent can join if it speaks the protocol. For this workflow, that maps onto exactly the things I needed:</p>
+<table>
+<thead>
+<tr>
+<th>What the workflow needs</th>
+<th>What Switch provides</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The agent in the place the team already talks</td>
+<td>Rooms bridged to Mattermost. The agent has its own bot account in the channel.</td>
+</tr>
+<tr>
+<td>To know who said something</td>
+<td>Every message event carries the sender&#39;s handle on the chat platform.</td>
+</tr>
+<tr>
+<td>One thread per change, without @-ing the bot every time</td>
+<td>Thread follow-ups: replies in the agent&#39;s thread reach it.</td>
+</tr>
+<tr>
+<td>Conventions every agent and person can see</td>
+<td>Room instructions, shown to every agent that connects.</td>
+</tr>
+<tr>
+<td>The published plan living in the room</td>
+<td>Room documents an agent can create and update.</td>
+</tr>
+<tr>
+<td>Not being locked to one model or vendor</td>
+<td>A plain protocol: SSE down, HTTP up. Bring any agent.</td>
+</tr>
+</tbody></table>
+<p>Remove Switch and the workflow doesn&#39;t degrade gracefully. It disappears: there&#39;s no room, no reliable &quot;who said this&quot;, and no thread to decide in.</p>
+<h2><span>Setting up Switch from scratch, headless</span></h2>
+<p>Switch&#39;s quickstart uses <strong>Switch Console</strong>, the desktop app, which runs a local server for you. I was building on a cloud VM with no desktop, so I ran the server directly with the official standalone Docker Compose file. If you&#39;re doing the same, this section will save you some time.</p>
+<figure style="--tilt:-0.35deg"><img src="figures/setup.png" alt="Four commands" loading="lazy"><figcaption>Four commands</figcaption></figure>
+<p><strong>1. Pin a version and start the stack.</strong> The Compose file <em>requires</em> <code>SWITCH_VERSION</code>; it refuses to float to <code>latest</code>. Take the version from the container registry (I used <code>0.31.0</code>), not from the GitHub releases page, which tracks Console. Profiles add the optional pieces: <code>collab</code> adds Mattermost plus a setup container that seeds it, and <code>gateway</code> adds the admin dashboard.</p>
+<pre><code class="language-sh">curl -fsSL https://raw.githubusercontent.com/sandbox-quantum/switch/switch-v0.31.0/deploy/local/standalone-docker-compose.yml \
+  -o docker-compose.switch.yml
+# .env holds SWITCH_VERSION=0.31.0, DB passwords, AGENT_REGISTRATION_TOKEN, SECRET_KEYS, admin + Mattermost credentials
+docker compose -f docker-compose.switch.yml --env-file .env --profile collab --profile gateway up -d
+curl http://127.0.0.1:8000/health   # the agent bridge
+</code></pre>
+<p>In the repo, <code>npm run switch:up</code> does all of this and generates the secrets for you.</p>
+<p><strong>2. Turn on the feature I needed.</strong> Thread follow-ups (a reply in the agent&#39;s thread reaching it without an @-mention) sit behind a feature flag in 0.31:</p>
+<pre><code class="language-sh">FEATURE_FLAGS_ENABLED=follow_the_conversation
+</code></pre>
+<p>Without it, everyone has to write <code>@stageleaf approve</code>. With it, they just write <code>approve</code>.</p>
+<p><strong>3. Register a custom agent.</strong> The registration token from <code>.env</code> registers an agent once and returns its API key, also once:</p>
+<pre><code class="language-js">await fetch(&quot;http://127.0.0.1:8000/agents&quot;, {
+  method: &quot;POST&quot;,
+  headers: { Authorization: `Bearer ${AGENT_REGISTRATION_TOKEN}`, &quot;Content-Type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify({
+    name: &quot;stageleaf&quot;,
+    description: &quot;Event operations agent&quot;,
+    connector_type: &quot;custom&quot;,
+    integration_profile: {
+      connection_model: &quot;always_on&quot;,
+      message_exchange: true,
+      pre_invocation_mediation: [],
+      post_invocation_mediation: [],
+      event_reporting: [],
+    },
+  }),
+}); // → { id, api_key }
+</code></pre>
+<p><strong>4. Let the team talk to it.</strong> This one cost me a few minutes. A newly registered agent answers <strong>only its owner</strong>: its addressing policy defaults to owner plus owner&#39;s agents. An agent can&#39;t change its own settings, so the admin clears the policy through the Gateway:</p>
+<pre><code class="language-js">// after POST /gateway/auth/login with the admin credentials (session cookie)
+await fetch(`http://127.0.0.1:8000/gateway/agents/${agentId}/addressing-policy`, {
+  method: &quot;PUT&quot;, headers: { &quot;Content-Type&quot;: &quot;application/json&quot;, Cookie: cookie },
+  body: JSON.stringify({ policy: null }), // null = anyone may address it
+});
+</code></pre>
+<p><strong>5. Create the room.</strong> An agent can create rooms through the <code>create_room</code> operation. On a Mattermost bridge this provisions the channel, and you can add people by their Mattermost usernames and give the room its instructions in the same call:</p>
+<pre><code class="language-js">await op(&quot;create_room&quot;, {
+  name: &quot;fieldwork-forum-ops&quot;,
+  description: &quot;Event operations for Fieldwork Forum&quot;,
+  instructions: &quot;Report a change by mentioning @stageleaf… Only the lead planner publishes a revision…&quot;,
+  agent_names: [&quot;stageleaf&quot;],
+  user_names: [&quot;alex&quot;, &quot;jamie&quot;, &quot;sam&quot;, &quot;avery&quot;, &quot;robin&quot;, &quot;maya&quot;],
+  bridge_id: mattermostBridgeId, // from list_bridges
+  channel_type: &quot;channel_public&quot;,
+});
+</code></pre>
+<p><code>npm run demo:setup</code> in the repo does steps 3–5, creates the demo team&#39;s accounts, and links the room to a sample Stageleaf event.</p>
+<h2><span>Speaking the agent protocol</span></h2>
+<figure style="--tilt:0.45deg"><img src="figures/protocol.png" alt="Speaking Switch" loading="lazy"><figcaption>Speaking Switch</figcaption></figure>
+<p>Claude Code, Codex and OpenCode can join a room through Switch Console. I wanted a purpose-built agent with its own tools and rules, so I implemented the <a href="https://docs.switchagents.ai/switch-rooms/internals/agent-protocol">agent protocol</a> directly in about 250 lines of Node (<code>agent/switch-client.mjs</code>). It&#39;s refreshingly small:</p>
+<ul>
+<li><strong>Down: one server-sent-event stream.</strong><ul>
+<li><code>GET /agents/{id}/events?connection_id=&lt;uuid&gt;&amp;scope=all&amp;filter=all</code>. You choose the connection id and reuse it across reconnects.</li>
+<li>The first frame is <code>connection_state</code>. After that come <code>message</code> events with <code>sender_name</code>, <code>body</code>, <code>message_id</code>, <code>thread_id</code> and an <code>addressed</code> flag.</li>
+</ul>
+</li>
+<li><strong>Up: HTTP operations.</strong> <code>POST /agents/{id}/ops/{name}</code> with an <code>X-Switch-Connection-Id</code> header. The ones I use are <code>connect_to_room</code>, <code>read_context</code>, <code>post_message</code>, <code>create_room_document</code> and <code>update_room_document</code>.</li>
+<li><strong>A heartbeat every 2 seconds.</strong> <code>POST /agents/{id}/connection/beat</code>.</li>
+</ul>
+<aside class="sticky"><b>Gotcha!</b>If you declare a protocol revision (<code>protocol=6</code>), every heartbeat must echo the connection&#39;s <code>generation</code> from <code>connection_state</code>. Otherwise the server answers <code>409 unfenced</code>, the heartbeat lapses after 6 seconds, and you&#39;re evicted in a loop. The fix is one field:</aside>
+<pre><code class="language-js">// on connection_state
+this.generation = data.generation;
+// every heartbeatMs
+fetch(`${base}/agents/${id}/connection/beat`, {
+  method: &quot;POST&quot;,
+  headers: { Authorization: `Bearer ${apiKey}`, &quot;Content-Type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify({ connection_id: this.connectionId, generation: this.generation }),
+});
+</code></pre>
+<p>Two more things worth knowing:</p>
+<ul>
+<li><strong><code>post_message</code> goes to the room your connection is currently in</strong>, so call <code>connect_to_room</code> first. If an agent serves several rooms, process messages one at a time (or keep a connection per room), or a reply can land in the wrong room. <code>connect_to_room</code> also returns the room&#39;s instructions and participants, which I feed to the model.</li>
+<li><strong>Resume with <code>Last-Event-ID</code>.</strong> I persist the last handled event id and message ids, so a restart catches up on anything said while the agent was down without answering twice.</li>
+</ul>
+<h2><span>Keeping people in charge of the decisions</span></h2>
+<figure style="--tilt:-0.6deg"><img src="figures/trust.png" alt="Who said it?" loading="lazy"><figcaption>Who said it?</figcaption></figure>
+<p>The thing I cared about most: an approval must come from the person who owns the decision. If the model can type &quot;Sam approved&quot;, the whole workflow is theatre.</p>
+<p>So <strong>the model chooses actions, never identity</strong>:</p>
+<ul>
+<li><strong>Evidence comes from Switch, in code.</strong> For every message, the agent&#39;s code builds <code>evidence</code> from the Switch event itself: room id, message id, and the sender&#39;s handle (<code>sam</code>). Every tool that acts for a person (<code>record_decision</code>, <code>record_acknowledgment</code>, <code>publish_revision</code>) attaches that evidence automatically. The tool schemas have no &quot;who&quot; field.</li>
+<li><strong>Stageleaf verifies every action.</strong> The room must be the event&#39;s linked room. The handle must map to a contact who owns an affected activity. Only the lead planner&#39;s handle can publish.</li>
+<li><strong>Refusals go back to the model as normal tool errors.</strong> When Robin&#39;s &quot;approve&quot; arrived, the model explained the refusal in plain words.</li>
+</ul>
+<p>There&#39;s a test for exactly this: a scripted &quot;model&quot; tries to record Sam&#39;s approval while Robin is the one speaking. Stageleaf refuses, and nothing is recorded.</p>
+<p>The same split applies to feasibility. <strong>Deterministic checks decide what works; the model proposes.</strong> Stageleaf knows venue hours, fixed activities, room overlaps and each person&#39;s recorded availability. The agent runs candidate plans through <code>preview_change</code> before proposing anything.</p>
+<figure style="--tilt:0.5deg"><img src="figures/swap.png" alt="The swap" loading="lazy"><figcaption>The swap</figcaption></figure>
+<p>That&#39;s why its proposal message can say <em>&quot;that pushes Breakdown to 17:30, but Sam&#39;s crew leaves at 17:00&quot;</em>: a check returned that fact. And when something isn&#39;t recorded (the panelists&#39; arrival times), the agent asks the person who would know instead of guessing.</p>
+<h2><span>The architecture, end to end</span></h2>
+<figure style="--tilt:-0.35deg"><img src="figures/architecture.png" alt="How it fits together" loading="lazy"><figcaption>How it fits together</figcaption></figure>
+<ul>
+<li><strong>Mattermost:</strong> where the team talks. Bundled with the Switch stack, bridged by Switch.</li>
+<li><strong>Switch server:</strong> switch-core (agent bridge plus MCP), Postgres, the Mattermost bridge and the Gateway. Self-hosted with Docker.</li>
+<li><strong>The <code>@stageleaf</code> agent:</strong><ul>
+<li>the protocol client;</li>
+<li>a Claude tool loop (Claude Opus 5.5 on Amazon Bedrock, or the Claude API) that turns messages into tool calls;</li>
+<li>a rules mode that understands explicit commands, so you can run the whole workflow without any model credentials.</li>
+</ul>
+</li>
+<li><strong>Stageleaf:</strong> the system of record. It holds the run of show, the agent API (a planner-issued, revocable token), the checks, decisions, versions and acknowledgments. Its web app shows a <em>Team chat · via Switch</em> strip with the room and the agent&#39;s live status.</li>
+</ul>
+<h2><span>What I learned</span></h2>
+<ol>
+<li><strong>Let the room carry the workflow.</strong> I first imagined approval links and dashboards. The better product put the decision where the conversation already was: one thread per change, answered by the people who own the pieces.</li>
+<li><strong>Identity belongs to the platform, not the model.</strong> Switch hands you a trustworthy sender on every event, so use it in code and never let the model restate it.</li>
+<li><strong>Read the protocol&#39;s control frames.</strong> <code>connection_state</code> tells you the heartbeat interval and the generation. Most of my early bugs came from assuming instead of reading it.</li>
+<li><strong>Defaults are conservative, which is good.</strong> Owner-only addressing and flag-gated thread follow-ups are sensible server defaults. Just know they exist when your teammates&#39; messages seem to vanish.</li>
+<li><strong>Deterministic checks make the model better, not worse.</strong> With <code>preview_change</code> available, the agent&#39;s proposals got shorter and more confident. It cited facts instead of hedging.</li>
+</ol>
+<h2><span>Try it</span></h2>
+<pre><code class="language-sh">git clone https://github.com/tpavankalyan/stageleaf &amp;&amp; cd stageleaf
+npm ci &amp;&amp; npm run build
+npm run switch:up      # Switch + Mattermost + Gateway (Docker)
+npm start              # Stageleaf on :4317
+npm run demo:setup     # agent, team, room, sample event v1
+npm run agent          # Bedrock / Claude API, or rules mode with no credentials
+node scripts/rehearse.mjs   # optional: play the scenario
+</code></pre>
+<p>Open Mattermost at <code>http://localhost:8065</code>, sign in as <code>alex</code> (passwords are in <code>switch/credentials.json</code>), and tag <code>@stageleaf</code> in <code>#fieldwork-forum-ops</code>.</p>
+<p>Built for Flip the Switch 2026 (Best Business Workflow). Switch is © SandboxAQ, Apache 2.0 with the Commons Clause. Stageleaf is MIT.</p>
+
+<footer>Written by Pavan Kalyan · drawings made in Excalidraw · Stageleaf is MIT, Switch is © SandboxAQ.</footer>
+</main>
+</body>
+</html>

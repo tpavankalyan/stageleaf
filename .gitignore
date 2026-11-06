@@ -1,0 +1,13 @@
+node_modules/
+data/
+dist/
+*.log
+.env
+
+artifacts/
+*.zip
+switch/.env
+switch/credentials.json
+switch/agent-state.json
+switch/docker-compose.switch.yml
+switch/docker-compose.switch.yml.source
