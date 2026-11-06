@@ -24,3 +24,5 @@ node docs/src/render/render.mjs docs/stageleaf-blog.excalidraw /tmp/frames --fra
 The figures go to `docs/figures/` (`hero`, `thread`, `pieces`, `server`, `agent`, `protocol`, `who`, `checks`, in that order). The PDF is the ten frames, one per page.
 
 The screenshots in `assets/` are stills from the recorded demo run on Switch 0.31.0.
+
+The canvas is also published on Excalidraw+ as scene `214hXQwFkbB` in Pavan Workspace, with a [view link](https://link.excalidraw.com/l/5ZLLxJwzIBj/214hXQwFkbB) and a [slides link](https://link.excalidraw.com/p/readonly/TMHGyq93KQBdFpUVhg5f). After a rebuild, push the new canvas there with `excalidraw scenes content put 214hXQwFkbB --file docs/stageleaf-blog.excalidraw` (the `@excalidraw/cli`, with `EXCALIDRAW_API_KEY` set). Both links keep working.

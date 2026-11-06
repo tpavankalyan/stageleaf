@@ -8,7 +8,7 @@ author: "Pavan Kalyan"
 
 *Stageleaf is a run-of-show tool for event teams. I connected it to the team's Mattermost room with Switch. When something changes on the day, the agent checks the plan, proposes a fix in a thread, collects approvals from the people affected and publishes the new version. This post covers what I built, how I set up Switch on a server and what I would tell someone connecting their first agent.*
 
-Pavan Kalyan · [Code](https://github.com/tpavankalyan/stageleaf) · [Web edition](https://tpavankalyan.github.io/stageleaf/) · [Excalidraw edition](https://tpavankalyan.github.io/stageleaf/stageleaf-blog.excalidraw) · [Demo video](https://tpavankalyan.github.io/stageleaf/stageleaf-demo.mp4)
+Pavan Kalyan · [Code](https://github.com/tpavankalyan/stageleaf) · [Web edition](https://tpavankalyan.github.io/stageleaf/) · [Read it in Excalidraw](https://link.excalidraw.com/p/readonly/TMHGyq93KQBdFpUVhg5f) · [Demo video](https://tpavankalyan.github.io/stageleaf/stageleaf-demo.mp4)
 
 ![The team's Mattermost room and Stageleaf, connected by Switch](https://tpavankalyan.github.io/stageleaf/figures/hero.png)
 

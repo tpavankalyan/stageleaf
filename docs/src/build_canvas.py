@@ -838,7 +838,20 @@ FIGURES = [('hero', fig_cover, 70), ('thread', fig_thread, 30), ('pieces', fig_p
            ('who', fig_who, 30), ('checks', fig_checks, 30)]
 
 
+DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
+
+def frac_index(i):
+    """Excalidraw's fractional order keys, in order: a0..az, then b00..bzz."""
+    if i < 62:
+        return 'a' + DIGITS[i]
+    i -= 62
+    return 'b' + DIGITS[i // 62] + DIGITS[i % 62]
+
+
 def scene(c):
+    for i, e in enumerate(c.els):
+        e['index'] = frac_index(i)
     return {'type': 'excalidraw', 'version': 2, 'source': 'https://excalidraw.com', 'elements': c.els,
             'appState': {'viewBackgroundColor': '#f4efe4', 'gridSize': None, 'currentItemFontFamily': EXC},
             'files': c.files}
@@ -865,6 +878,8 @@ def build_figures():
 
 # ================================================================ web edition
 PAGES = 'https://tpavankalyan.github.io/stageleaf/'
+EXCALIDRAW_SLIDES = 'https://link.excalidraw.com/p/readonly/TMHGyq93KQBdFpUVhg5f'
+EXCALIDRAW_SCENE = 'https://link.excalidraw.com/l/5ZLLxJwzIBj/214hXQwFkbB'
 
 
 def blocks():
@@ -904,7 +919,7 @@ def to_markdown():
     out = ['---', f'title: "{T.TITLE}"', f'description: "{T.DEK}"', f'author: "{T.AUTHOR}"', '---', '',
            f'# {T.TITLE}', '', f'*{T.DEK}*', '',
            f'{T.AUTHOR} · [Code]({T.REPO}) · [Web edition]({PAGES}) · '
-           f'[Excalidraw edition]({PAGES}stageleaf-blog.excalidraw) · [Demo video]({PAGES}stageleaf-demo.mp4)', '']
+           f'[Read it in Excalidraw]({EXCALIDRAW_SLIDES}) · [Demo video]({PAGES}stageleaf-demo.mp4)', '']
     for b in blocks():
         kind = b[0]
         if kind == 'p':
@@ -1062,13 +1077,15 @@ def to_html():
                 body.append('<ol class="lessons">' + ''.join(f'<li><strong>{inline(t)}</strong> {inline(d)}</li>'
                                                              for t, d in T.LESSONS) + '</ol>')
     col()
-    body.append(f'<footer>Drawn in Excalidraw. The canvas, the figures and this page are built from the same text in '
-                f'<a href="{T.REPO}/tree/main/docs/src">docs/src</a>.</footer></div>')
+    body.append(f'<footer>Drawn in Excalidraw. Read the canvas as <a href="{EXCALIDRAW_SLIDES}">slides</a>, open the '
+                f'<a href="{EXCALIDRAW_SCENE}">whole scene</a> or download the '
+                f'<a href="stageleaf-blog.excalidraw" download>.excalidraw file</a>. The canvas, the figures and this page '
+                f'are built from the same text in <a href="{T.REPO}/tree/main/docs/src">docs/src</a>.</footer></div>')
     if state['section']:
         body.append('</section>')
     links = (f'<a class="hot" href="{T.REPO}">Code on GitHub</a>'
              f'<a href="stageleaf-demo.mp4">Demo video</a>'
-             f'<a href="stageleaf-blog.excalidraw" download>Excalidraw edition</a>'
+             f'<a href="{EXCALIDRAW_SLIDES}">Read it in Excalidraw</a>'
              f'<a href="stageleaf-blog.pdf">PDF</a>')
     return f"""<!doctype html>
 <html lang="en">

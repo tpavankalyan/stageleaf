@@ -6,7 +6,7 @@ Stageleaf is an event-operations workspace with an AI agent that works in the ev
 
 Built for the [Flip the Switch hackathon](https://www.wemakedevs.org/hackathons/switch), November 4–7, 2026: Best Business Workflow track.
 
-> **Blog post:** [Building an event-day agent on Switch](https://tpavankalyan.github.io/stageleaf/) ([Excalidraw edition](docs/stageleaf-blog.excalidraw), [PDF](docs/stageleaf-blog.pdf)) · **Demo video:** [2 min 24 s](https://tpavankalyan.github.io/stageleaf/stageleaf-demo.mp4) · **Recorded with:** Switch 0.31.0, Mattermost 11.9, Claude Opus 5.5 on Amazon Bedrock
+> **Blog post:** [Building an event-day agent on Switch](https://tpavankalyan.github.io/stageleaf/) ([in Excalidraw](https://link.excalidraw.com/p/readonly/TMHGyq93KQBdFpUVhg5f), [.excalidraw file](docs/stageleaf-blog.excalidraw), [PDF](docs/stageleaf-blog.pdf)) · **Demo video:** [2 min 24 s](https://tpavankalyan.github.io/stageleaf/stageleaf-demo.mp4) · **Recorded with:** Switch 0.31.0, Mattermost 11.9, Claude Opus 5.5 on Amazon Bedrock
 
 ![How Stageleaf and Switch fit together](docs/figures/pieces.png)
 
