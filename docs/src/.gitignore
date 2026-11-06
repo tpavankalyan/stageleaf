@@ -1,0 +1,4 @@
+figures.excalidraw
+__pycache__/
+render/node_modules/
+render/www/

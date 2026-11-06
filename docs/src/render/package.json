@@ -1,0 +1,12 @@
+{
+  "name": "excalidraw-render",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "esbuild": "0.25.12",
+    "playwright": "1.65.0"
+  }
+}
